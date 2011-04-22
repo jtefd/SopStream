@@ -1,0 +1,13 @@
+-------------------------------------------------------------------------------
+    SopStream - A helper utility for controlling SopCast
+-------------------------------------------------------------------------------
+
+----- Summary
+
+This application provides a command line interface to the sp-sc SopCast tool
+for Linux.
+
+It allows the user to download a SopCast channel list and select a channel to
+start streaming by name, rather than channel number.
+
+-----
