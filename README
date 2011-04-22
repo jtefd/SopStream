@@ -11,3 +11,16 @@ It allows the user to download a SopCast channel list and select a channel to
 start streaming by name, rather than channel number.
 
 -----
+
+----- Dependencies
+
+This utility requires the following:
+
+    sp-sc
+    Command line Linux version of SopCast.
+    http://sopcast-player.googlecode.com/files/sp-auth-3.2.6.tar.gz
+
+    libstdc++5
+    The GNU Standard C++ Library v3
+
+-----
