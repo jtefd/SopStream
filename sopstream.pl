@@ -22,6 +22,10 @@ Starts streaming the given named channel.
 
 Lists all known channels.
 
+=item B<--find-channels | -f CHANNEL_NAME_SEARCH>
+
+List all channels matching the given search term.
+
 =item B<--background | -b>
 
 Runs the application in the background.
@@ -51,9 +55,7 @@ use IO::Socket;
 use LWP::UserAgent;
 use Pod::Usage;
 
-sub getChannels(;$) {
-    my ($search) = @_;
-    
+sub GetChannels() {
     my %channels = ();
     
     my $channel_list_source = 'http://www.livefootballtvs.com/sopcast-channel-list.html';
@@ -79,7 +81,7 @@ sub getChannels(;$) {
     return %channels;
 }
 
-sub checkPort($) {
+sub CheckPort($) {
     my ($port) = @_;
     
     my $sock = IO::Socket::INET->new(
@@ -91,7 +93,7 @@ sub checkPort($) {
     return undef;
 }
 
-sub getPorts() {
+sub GetPorts() {
     my $start = 1;
     
     while($start <= 9) {
@@ -113,6 +115,8 @@ my %opts;
 GetOptions(
     \%opts,
     'list-channels|l',
+    'find-channel|f=s',
+    'url|u',
     'start|s=s',
     'background|b',
     'kill|k',
@@ -123,14 +127,23 @@ if ($opts{'help'} || scalar(keys %opts) == 0) {
     pod2usage( -verbose => 1, -exitval => 0 )
 }
 
-my %channels = getChannels();
+my %channels = GetChannels();
 
 if ($opts{'list-channels'}) {
     print $_, "\n" foreach sort keys %channels;
 }
+elsif ($opts{'find-channel'}) {
+	foreach (sort keys %channels) {
+		my $find = quotemeta($opts{'find-channel'});
+		
+		if (/$find/i) {
+			print $_, "\n";
+		}
+	}
+}
 elsif ($opts{'start'}) {
     if (defined(my $link = $channels{$opts{'start'}})) {
-        if (my ($local, $player) = getPorts()) {
+        if (my ($local, $player) = GetPorts()) {
             my $cmd = sprintf('sp-sc %s %s %s', $link, $local, $player);
         
             if ($opts{'background'}) {
