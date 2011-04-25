@@ -165,16 +165,14 @@ elsif ($opts{'find-channel'}) {
 		}
 	}
 }
-elsif ($opts{'start'}) {
-	my $sop_proto_regex = quotemeta('sop://');
-	
-	if ($opts{'start'} =~ /^$sop_proto_regex/) {
+elsif ($opts{'start'}) {	
+	if ($opts{'start'} =~ /^sop:\/\//) { # By URL
 		StartSopCast($opts{'start'}, $opts{'background'});
 	}
-	elsif ($opts{'start'} =~ /^\d+$/) {
-		#Construct sop:// URL
+	elsif ($opts{'start'} =~ /^\d+$/) { # By channel number
+		StartSopCast(sprintf('sop://broker.sopcast.com:3912/%s', $opts{'start'}), $opts{'background'});
 	}
-    elsif (defined(my $link = $channels{$opts{'start'}})) {
+    elsif (defined(my $link = $channels{$opts{'start'}})) { # By channel name
     	StartSopCast($link, $opts{'background'});
     }
 }
