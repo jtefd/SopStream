@@ -55,6 +55,9 @@ use HTML::TreeBuilder;
 use IO::Socket;
 use LWP::UserAgent;
 use Pod::Usage;
+use Sys::Hostname;
+
+my $VERBOSE = undef;
 
 sub GetChannels() {
     my %channels = ();
@@ -112,10 +115,12 @@ sub GetPorts() {
 }
 
 sub StartSopCast($;$) {
-	my ($broker, $background) = @_;
+	my ($broker_url, $background) = @_;
 	
 	if (my ($local_port, $player_port) = GetPorts()) {
-    	my $cmd = sprintf('sp-sc %s %s %s', $broker, $local_port, $player_port);
+    	my $cmd = sprintf('sp-sc %s %s %s', $broker_url, $local_port, $player_port);
+    	
+    	printf(STDERR "Streaming %s to http://%s:%s\n", $broker_url, hostname, $player_port) if $VERBOSE;
     	
     	if ($background) {
             $cmd = sprintf('nohup %s > /dev/null 2> /dev/null &', $cmd);
@@ -134,8 +139,13 @@ GetOptions(
     'start|s=s',
     'background|b',
     'kill|k',
+    'verbose|v',
     'help'
 );
+
+if ($opts{'verbose'}) {
+	$VERBOSE = 1;
+}
 
 if ($opts{'help'} || scalar(keys %opts) == 0) {
     pod2usage( -verbose => 1, -exitval => 0 )
