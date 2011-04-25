@@ -8,21 +8,22 @@ sopstream
 
 =head1 SYNOPSIS
 
-sopstream --start CHANNEL_NAME | --list-channels
+sopstream --start CHANNEL | --list-channels
 
 =head1 OPTIONS
 
 =over 8
 
-=item B<--start CHANNEL_NAME | -s CHANNEL_NAME>
+=item B<--start CHANNEL | -s CHANNEL>
 
-Starts streaming the given named channel.
+Starts streaming the given channel. The given parameter can either
+be a named channel, a sop:// protocol URL or a channel number.
 
 =item B<--list-channels | -l>
 
 Lists all known channels.
 
-=item B<--find-channels | -f CHANNEL_NAME_SEARCH>
+=item B<--find-channels CHANNEL_NAME_SEARCH | -f CHANNEL_NAME_SEARCH>
 
 List all channels matching the given search term.
 
@@ -99,7 +100,7 @@ sub GetPorts() {
     while($start <= 9) {
         my ($local, $player) = ("890$start", "891$start");
         
-        if (checkPort($local) && checkPort($player)) {
+        if (CheckPort($local) && CheckPort($player)) {
             return ($local, $player);
         }
         else {
@@ -110,13 +111,26 @@ sub GetPorts() {
     return undef;
 }
 
+sub StartSopCast($;$) {
+	my ($broker, $background) = @_;
+	
+	if (my ($local_port, $player_port) = GetPorts()) {
+    	my $cmd = sprintf('sp-sc %s %s %s', $broker, $local_port, $player_port);
+    	
+    	if ($background) {
+            $cmd = sprintf('nohup %s > /dev/null 2> /dev/null &', $cmd);
+        }
+        
+        system($cmd);
+	}
+}
+
 my %opts;
 
 GetOptions(
     \%opts,
     'list-channels|l',
     'find-channel|f=s',
-    'url|u',
     'start|s=s',
     'background|b',
     'kill|k',
@@ -142,16 +156,16 @@ elsif ($opts{'find-channel'}) {
 	}
 }
 elsif ($opts{'start'}) {
-    if (defined(my $link = $channels{$opts{'start'}})) {
-        if (my ($local, $player) = GetPorts()) {
-            my $cmd = sprintf('sp-sc %s %s %s', $link, $local, $player);
-        
-            if ($opts{'background'}) {
-                $cmd = sprintf('nohup %s > /dev/null 2> /dev/null &', $cmd);
-            }
-        
-            system($cmd);    
-        }
+	my $sop_proto_regex = quotemeta('sop://');
+	
+	if ($opts{'start'} =~ /^$sop_proto_regex/) {
+		StartSopCast($opts{'start'}, $opts{'background'});
+	}
+	elsif ($opts{'start'} =~ /^\d+$/) {
+		#Construct sop:// URL
+	}
+    elsif (defined(my $link = $channels{$opts{'start'}})) {
+    	StartSopCast($link, $opts{'background'});
     }
 }
 elsif ($opts{'kill'}) {
