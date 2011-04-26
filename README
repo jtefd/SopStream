@@ -1,26 +1,38 @@
--------------------------------------------------------------------------------
-    SopStream - A helper utility for controlling SopCast
--------------------------------------------------------------------------------
+SopStream version 0.0.1
+=====================
 
------ Summary
+The README is used to introduce the module and provide instructions on
+how to install the module, any machine dependencies it may have (for
+example C compilers and installed libraries) and any other information
+that should be provided before the module is installed.
 
-This application provides a command line interface to the sp-sc SopCast tool
-for Linux.
+A README file is required for CPAN modules since CPAN extracts the
+README file from a module distribution so that people browsing the
+archive can use it get an idea of the modules uses. It is usually a
+good idea to provide version information here so that people can
+decide whether fixes for the module are worth downloading.
 
-It allows the user to download a SopCast channel list and select a channel to
-start streaming by name, rather than channel number.
+INSTALLATION
 
------
+To install this module type the following:
 
------ Dependencies
+   perl Makefile.PL
+   make
+   make test
+   make install
 
-This utility requires the following:
+DEPENDENCIES
 
-    sp-sc
-    Command line Linux version of SopCast.
-    http://sopcast-player.googlecode.com/files/sp-auth-3.2.6.tar.gz
+This module requires these other modules and libraries:
 
-    libstdc++5
-    The GNU Standard C++ Library v3
+  blah blah blah
 
------
+COPYRIGHT AND LICENCE
+
+Put the correct copyright and licence information here.
+
+Copyright (C) 2011 by James Telford
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself, either Perl version 5.10.1 or,
+at your option, any later version of Perl 5 you may have available.

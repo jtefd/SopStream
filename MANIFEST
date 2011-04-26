@@ -1,0 +1,6 @@
+Changes
+Makefile.PL
+MANIFEST
+README
+sopstream.pl
+t/SopStream.t

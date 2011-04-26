@@ -57,10 +57,18 @@ use LWP::UserAgent;
 use Pod::Usage;
 use Sys::Hostname;
 
-my $VERBOSE = undef;
+use vars qw/$VERSION $VERBOSE/;
+
+$VERSION = '0.0.1';
+
+sub Log($) {
+	my ($msg) = @_;
+	
+	print STDERR $msg, "\n" if $VERBOSE;
+}
 
 sub GetChannels() {
-    my %channels = ();
+    my $channels = {};
     
     my $channel_list_source = 'http://www.livefootballtvs.com/sopcast-channel-list.html';
     
@@ -78,11 +86,16 @@ sub GetChannels() {
             my $channel_name = $html_columns[1]->as_text();
             my $channel_link = $html_columns[2]->as_text();
             
-            $channels{$channel_name} = $channel_link if $channel_name =~ /\w$/;
+            my $key = uc($channel_name);
+            
+            if ($channel_name =~ /\w$/) {
+                $channels->{$key}->{_NAME} = $channel_name;
+                $channels->{$key}->{_URL} = $channel_link;	
+            }
         }
     }
     
-    return %channels;
+    return $channels;
 }
 
 sub CheckPort($) {
@@ -120,7 +133,7 @@ sub StartSopCast($;$) {
 	if (my ($local_port, $player_port) = GetPorts()) {
     	my $cmd = sprintf('sp-sc %s %s %s', $broker_url, $local_port, $player_port);
     	
-    	printf(STDERR "Streaming %s to http://%s:%s\n", $broker_url, hostname, $player_port) if $VERBOSE;
+    	Log(sprintf('Streaming %s to http://%s:%s', $broker_url, hostname, $player_port));
     	
     	if ($background) {
             $cmd = sprintf('nohup %s > /dev/null 2> /dev/null &', $cmd);
@@ -151,17 +164,23 @@ if ($opts{'help'} || scalar(keys %opts) == 0) {
     pod2usage( -verbose => 1, -exitval => 0 )
 }
 
-my %channels = GetChannels();
-
 if ($opts{'list-channels'}) {
-    print $_, "\n" foreach sort keys %channels;
+	my $channels = GetChannels();
+	
+	foreach (sort keys %{$channels}) {
+		print $channels->{$_}->{_NAME}, "\n";
+	}
 }
 elsif ($opts{'find-channel'}) {
-	foreach (sort keys %channels) {
-		my $find = quotemeta($opts{'find-channel'});
-		
-		if (/$find/i) {
-			print $_, "\n";
+	my $channels = GetChannels();
+	
+    my $find_str = quotemeta($opts{'find-channel'});
+	
+	foreach (sort keys %{$channels}) {
+		my $name = $channels->{$_}->{_NAME};
+			
+		if ($name =~ /$find_str/i) {
+			print $name, "\n";
 		}
 	}
 }
@@ -172,9 +191,29 @@ elsif ($opts{'start'}) {
 	elsif ($opts{'start'} =~ /^\d+$/) { # By channel number
 		StartSopCast(sprintf('sop://broker.sopcast.com:3912/%s', $opts{'start'}), $opts{'background'});
 	}
-    elsif (defined(my $link = $channels{$opts{'start'}})) { # By channel name
-    	StartSopCast($link, $opts{'background'});
-    }
+	else {
+		my $channels = GetChannels();
+		
+		my $link = $channels->{uc($opts{'start'})};
+		
+		unless ($link) {
+			my $find_str = quotemeta($opts{'start'});
+			
+			foreach (sort keys %{$channels}) {
+                my $name = $channels->{$_}->{_NAME};
+            
+                if ($name =~ /$find_str/i) {
+                	Log(sprintf('Selecting channel: %s', $name));
+                    $link = $channels->{$_}->{_URL};
+                    last;
+                }
+			}
+		}
+		
+		if ($link) {
+            StartSopCast($link, $opts{'background'});	
+		}
+	}
 }
 elsif ($opts{'kill'}) {
     system('killall sp-sc');
