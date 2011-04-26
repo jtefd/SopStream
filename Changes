@@ -1,6 +1,8 @@
-Revision history for Perl extension SopCast1.
+Revision history for Perl script sopstream.
 
-0.01  Tue Apr 26 11:02:07 2011
-	- original version; created by h2xs 1.23 with options
-		-A -n SopCast1
+0.0.1  Tue Apr 26 12:30:00 2011
+	- First proper project structure with makefile etc.
+	- Supports playing sopcast stream by URL, name, channel number.
+	- Each invocation by name/search will consult a website to retrieve the 
+	  channel name/number mapping.
 
