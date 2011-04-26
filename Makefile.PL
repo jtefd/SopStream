@@ -7,7 +7,7 @@ WriteMakefile(
     VERSION_FROM      => 'sopstream.pl',
     PREREQ_PM         => { 'Getopt::Long', 'HTML::TreeBuilder', 'IO::Socket', 'LWP::UserAgent', 'Pod::Usage', 'Sys::Hostname' },
     ($] >= 5.005 ?     ## Add these new keywords supported since 5.005
-      (ABSTRACT       => 'Wrapper utility around SopCast', # retrieve abstract from module
+      (ABSTRACT       => 'Wrapper utility around SopCast P2P video streaming application',
        AUTHOR         => 'James Telford <james@tefd.co.uk>') : ()),
     LIBS              => [''], # e.g., '-lm'
     DEFINE            => '', # e.g., '-DHAVE_SOMETHING'

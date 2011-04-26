@@ -1,5 +1,11 @@
 Revision history for Perl script sopstream.
 
+0.1.0  Tue Apr 26 13:00:00 2011
+    - Restructured single script into 2 embedded modules to simplify testing.
+    - Moved sopcast client kill command into a separate module.
+    - Added local caching of channel list (to reduce number of times needed to fetch from website)
+    - Added in-memory caching of channel list (to reduce multiple file accesses of channel list)
+
 0.0.1  Tue Apr 26 12:30:00 2011
 	- First proper project structure with makefile etc.
 	- Supports playing sopcast stream by URL, name, channel number.

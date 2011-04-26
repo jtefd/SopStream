@@ -47,19 +47,25 @@ A utility to find and start SopCast channels.
 
 =cut
 
+package SopStream::Util;
+
 use strict;
 use warnings;
 
-use Getopt::Long;
+use File::Basename qw/dirname/;
+use File::Path qw/mkpath/;
+use File::Spec::Functions qw/catfile/;
+use File::stat;
 use HTML::TreeBuilder;
 use IO::Socket;
 use LWP::UserAgent;
-use Pod::Usage;
 use Sys::Hostname;
+use XML::Simple;
 
-use vars qw/$VERSION $VERBOSE/;
+use vars qw/$VERSION $VERBOSE $CHANNEL_LIST_CACHE_FILE $CHANNEL_LIST_CACHE/;
 
-$VERSION = '0.0.1';
+$VERSION = '0.1.0';
+$CHANNEL_LIST_CACHE_FILE = catfile($ENV{HOME}, '.sopstream', 'channel_list.xml');
 
 sub Log($) {
 	my ($msg) = @_;
@@ -67,10 +73,14 @@ sub Log($) {
 	print STDERR $msg, "\n" if $VERBOSE;
 }
 
-sub GetChannels() {
-    my $channels = {};
-    
-    my $channel_list_source = 'http://www.livefootballtvs.com/sopcast-channel-list.html';
+sub StashChannelList() {
+	unless (-d dirname($CHANNEL_LIST_CACHE_FILE)) {
+	   mkpath(dirname($CHANNEL_LIST_CACHE_FILE));	
+	}
+	
+	my $channels = {};
+	
+	my $channel_list_source = 'http://www.livefootballtvs.com/sopcast-channel-list.html';
     
     my $ua = LWP::UserAgent->new();
     my $response = $ua->get($channel_list_source);
@@ -89,13 +99,72 @@ sub GetChannels() {
             my $key = uc($channel_name);
             
             if ($channel_name =~ /\w$/) {
-                $channels->{$key}->{_NAME} = $channel_name;
-                $channels->{$key}->{_URL} = $channel_link;	
+            	push @{$channels->{channel}}, {
+            		id => $key,
+            		name => $channel_name,
+            		url => $channel_link
+            	};
             }
         }
     }
+	
+	open CACHE_FILE, ">$CHANNEL_LIST_CACHE_FILE";
+	
+	print CACHE_FILE XMLout($channels, RootName => 'channel_list', XMLDecl => '<?xml version="1.0" encoding="UTF-8"?>');
+	
+	close CACHE_FILE;
+}
+
+sub GetChannels() {
+	unless ($CHANNEL_LIST_CACHE) {
+	    if (-f $CHANNEL_LIST_CACHE_FILE) {
+            my $diff = time - stat($CHANNEL_LIST_CACHE_FILE)->mtime;
+        
+	        if ($diff > (60*60*24*7)) {
+	            StashChannelList();
+	        }
+        }
+        else {
+            StashChannelList(); 
+        }
+	    
+	    my $xml_data = XMLin($CHANNEL_LIST_CACHE_FILE, ForceArray => 1, KeepRoot => 1);
+	    
+	    my $channel_list = $xml_data->{channel_list}[0]->{channel};
+	    
+	    my $channels = {};
+	    
+	    foreach my $name (sort keys %{$channel_list}) {
+	        my $id = $channel_list->{$name}->{id};
+	        my $url = $channel_list->{$name}->{url};
+	        
+	        $channels->{$id}->{_NAME} = $name;
+	        $channels->{$id}->{_URL} = $url;
+	    }
+	    
+	    $CHANNEL_LIST_CACHE = $channels;	
+	}
     
-    return $channels;
+    return $CHANNEL_LIST_CACHE;
+}
+
+sub FindChannels($) {
+	my ($query) = @_;
+	
+	my $channels = GetChannels();
+	my $results = $channels;
+    
+    my $find_str = quotemeta($query);
+    
+    foreach (sort keys %{$channels}) {
+        my $name = $channels->{$_}->{_NAME};
+            
+        unless ($name =~ /$find_str/i) {
+            delete $results->{$_};
+        }
+    }
+    
+    return $results;
 }
 
 sub CheckPort($) {
@@ -143,6 +212,20 @@ sub StartSopCast($;$) {
 	}
 }
 
+sub KillSopCast() {
+	system('killall sp-sc');
+}
+
+1;
+
+package SopStream::Main;
+
+use strict;
+use warnings;
+
+use Getopt::Long;
+use Pod::Usage;
+
 my %opts;
 
 GetOptions(
@@ -157,7 +240,7 @@ GetOptions(
 );
 
 if ($opts{'verbose'}) {
-	$VERBOSE = 1;
+	$SopStream::Util::VERBOSE = 1;
 }
 
 if ($opts{'help'} || scalar(keys %opts) == 0) {
@@ -165,56 +248,49 @@ if ($opts{'help'} || scalar(keys %opts) == 0) {
 }
 
 if ($opts{'list-channels'}) {
-	my $channels = GetChannels();
+	my $channels = SopStream::Util::GetChannels();
 	
 	foreach (sort keys %{$channels}) {
 		print $channels->{$_}->{_NAME}, "\n";
 	}
 }
 elsif ($opts{'find-channel'}) {
-	my $channels = GetChannels();
-	
-    my $find_str = quotemeta($opts{'find-channel'});
+	my $channels = SopStream::Util::FindChannels($opts{'find-channel'});
 	
 	foreach (sort keys %{$channels}) {
 		my $name = $channels->{$_}->{_NAME};
 			
-		if ($name =~ /$find_str/i) {
-			print $name, "\n";
-		}
+		print $name, "\n";
 	}
 }
 elsif ($opts{'start'}) {	
 	if ($opts{'start'} =~ /^sop:\/\//) { # By URL
-		StartSopCast($opts{'start'}, $opts{'background'});
+		SopStream::Util::StartSopCast($opts{'start'}, $opts{'background'});
 	}
 	elsif ($opts{'start'} =~ /^\d+$/) { # By channel number
-		StartSopCast(sprintf('sop://broker.sopcast.com:3912/%s', $opts{'start'}), $opts{'background'});
+		SopStream::Util::StartSopCast(sprintf('sop://broker.sopcast.com:3912/%s', $opts{'start'}), $opts{'background'});
 	}
-	else {
-		my $channels = GetChannels();
+	else { # By name / search
+		my $channels = SopStream::Util::GetChannels();
 		
 		my $link = $channels->{uc($opts{'start'})};
 		
 		unless ($link) {
-			my $find_str = quotemeta($opts{'start'});
-			
-			foreach (sort keys %{$channels}) {
+			$channels = SopStream::Util::FindChannels($opts{'start'});
+    
+            foreach (sort keys %{$channels}) {
                 my $name = $channels->{$_}->{_NAME};
-            
-                if ($name =~ /$find_str/i) {
-                	Log(sprintf('Selecting channel: %s', $name));
-                    $link = $channels->{$_}->{_URL};
-                    last;
-                }
-			}
+                $link = $channels->{$_}->{_URL};
+                SopStream::Util::Log(sprintf('Selecting channel: %s', $name));
+                last;
+            }
 		}
 		
 		if ($link) {
-            StartSopCast($link, $opts{'background'});	
+            SopStream::Util::StartSopCast($link, $opts{'background'});	
 		}
 	}
 }
 elsif ($opts{'kill'}) {
-    system('killall sp-sc');
+	SopStream::Util::KillSopCast();
 }
