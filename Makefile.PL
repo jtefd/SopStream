@@ -5,7 +5,7 @@ use ExtUtils::MakeMaker;
 WriteMakefile(
     NAME              => 'SopStream',
     VERSION_FROM      => 'sopstream.pl',
-    PREREQ_PM         => { 'Getopt::Long', 'HTML::TreeBuilder', 'IO::Socket', 'LWP::UserAgent', 'Pod::Usage', 'Sys::Hostname' },
+    PREREQ_PM         => { 'File::Basename', 'File::stat', 'File::Path', 'File::Spec::Functions', 'Getopt::Long', 'HTML::TreeBuilder', 'IO::Socket', 'LWP::UserAgent', 'Pod::Usage', 'Sys::Hostname', 'XML::Simple'},
     ($] >= 5.005 ?     ## Add these new keywords supported since 5.005
       (ABSTRACT       => 'Wrapper utility around SopCast P2P video streaming application',
        AUTHOR         => 'James Telford <james@tefd.co.uk>') : ()),

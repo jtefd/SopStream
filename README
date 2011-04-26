@@ -20,13 +20,18 @@ DEPENDENCIES
 
 This script requires these other modules and libraries:
 
+    File::Basename
+    File:Path
+    File::Spec::Functions
+    File::stat
     Getopt::Long
     HTML::TreeBuilder
     IO::Socket
     LWP::UserAgent
     Pod::Usage
     Sys::Hostname
-
+    XML::Simple
+    
 The script also requires the following to be installed on the target system:
 
     sp-sc
