@@ -52,6 +52,7 @@ package SopStream::Util;
 use strict;
 use warnings;
 
+use Carp;
 use File::Basename qw/dirname/;
 use File::Path qw/mkpath/;
 use File::Spec::Functions qw/catfile/;
@@ -88,11 +89,11 @@ sub StashChannelList() {
     my $html_page = HTML::TreeBuilder->new_from_content($response->decoded_content);
     
     my $html_feed_list = $html_page->look_down('_tag', 'table', 'id', 'customers');
-    
+
     foreach my $html_row ($html_feed_list->find('tr')) {
         my @html_columns = $html_row->find('_tag', 'td');
         
-        if (scalar(@html_columns) == 3) {
+        if (scalar(@html_columns) == 4) {
             my $channel_name = $html_columns[1]->as_text();
             my $channel_link = $html_columns[2]->as_text();
             
@@ -107,7 +108,7 @@ sub StashChannelList() {
             }
         }
     }
-	
+    
 	open CACHE_FILE, ">$CHANNEL_LIST_CACHE_FILE";
 	
 	print CACHE_FILE XMLout($channels, RootName => 'channel_list', XMLDecl => '<?xml version="1.0" encoding="UTF-8"?>');
